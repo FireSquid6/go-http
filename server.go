@@ -10,15 +10,31 @@ import (
 
 type RequestHandler func(req Request) Response
 
+type Header struct {
+	Key   string
+	Value string
+}
+
+type Headers []Header
+
 type Request struct {
 	Method string
-	Path   string
+	Url string
+  Path string
+  Params map[string]string
+  Headers Headers
 	Body   string
 }
 
 type Response struct {
 	Status int
+  Reason string
 	Body   string
+  Headers Headers
+}
+
+func (r *Response) Serialize(headOnly bool) string {
+  return ""
 }
 
 type Route struct {
@@ -68,37 +84,37 @@ func (s *Server) Listen() {
 		}
 
 		go func(c net.Conn) {
-      req := getRequest(c)
-      res := s.handle(req)
+			req := getRequest(c)
+			res := s.handle(req)
 
-      c.Write([]byte(responseToString(res)))
+			c.Write([]byte(responseToString(res)))
 			c.Close()
 		}(c)
 	}
 }
 
 func responseToString(res Response) string {
-  return fmt.Sprintf("HTTP/1.1 %d OK\r\n\r\n%s", res.Status, res.Body)
+	return fmt.Sprintf("HTTP/1.1 %d OK\r\n\r\n%s", res.Status, res.Body)
 }
 
 func (s *Server) handle(req Request) Response {
-  for _, route := range s.routes {
-    if route.Method == req.Method && route.Path == req.Path {
-      return route.Handler(req)
-    }
-  }
+	for _, route := range s.routes {
+		if route.Method == req.Method && route.Path == req.Path {
+			return route.Handler(req)
+		}
+	}
 
-  return Response{Status: 404, Body: "Not Found"}
+	return Response{Status: 404, Body: "Not Found"}
 }
 
 func getRequest(c net.Conn) Request {
-  buffer := make([]byte, 1024)
-  c.Read(buffer)
+	buffer := make([]byte, 1024)
+	c.Read(buffer)
 
-  request := string(buffer)
-  fmt.Println("Received request:", request)
+	request := string(buffer)
+	fmt.Println("Received request:", request)
 
-  return Request{}
+	return Request{}
 }
 
 func handleConnection(c net.Conn) {
